@@ -33,7 +33,8 @@ void app_main(void){
 	uint8_t teclas;
 	LedsInit();
 	SwitchesInit();
-    while(1)    {
+    while(1)    
+	{
     	teclas  = SwitchesRead();
     	switch(teclas){
     		case SWITCH_1:
