@@ -47,11 +47,10 @@ enum modoLed
 
 struct leds
 {
-	uint8_t n_led;      //  indica el número de led a controlar   
-	//PREGUNTAR SI ES 0 1 Y 2, o 1, 2 y 3 cambiar en los if
-	uint8_t n_ciclos;  // indica la cantidad de ciclos de encendido/apagado
-	uint16_t periodo;   // indica el tiempo de cada ciclo
-	enum modoLed mode;    // ON, OFF, TOGGLE
+	uint8_t n_led;      
+	uint8_t n_ciclos;  
+	uint16_t periodo;   
+	enum modoLed mode;    
 } my_led;
 
 
@@ -59,25 +58,18 @@ void funcionLed ( struct leds *myLed )
 {
 	if(myLed->mode == ON)
 	{
-	    printf("Modo ON\n");
         if(myLed->n_led==1)
         {
-            printf("LED_1\n");
-            //ENCENDER LED 
             LedOn(LED_1);
         }
         else
             if(myLed->n_led==2)
             {
-            printf("LED_2\n");
-            //ENCENDER LED 
             LedOn(LED_2);
             }   
             else
                 if(myLed->n_led==3)
                 {
-                printf("LED_3\n");
-                //ENCENDER LED 
                 LedOn(LED_3);
                 }
             
@@ -86,26 +78,19 @@ void funcionLed ( struct leds *myLed )
 	{
     	if(myLed->mode == OFF)
     	{
-    	    printf("Modo OFF\n");
             if(myLed->n_led==1)   
             {
-                printf("LED_1\n");
-                //APAGAR LED 
                 LedOff(LED_1);
             }
             else
                 if(myLed->n_led==2)
                 {
-                printf("LED_2\n");
-                //APAGAR LED 
-                LedOff(LED_2);
+                	LedOff(LED_2);
                 }   
                 else
                     if(myLed->n_led==3)
                     {
-                    printf("LED_3\n");
-                    //APAGAR LED 
-                    LedOff(LED_3);
+                    	LedOff(LED_3);
                     }
                 
     	}
@@ -113,30 +98,25 @@ void funcionLed ( struct leds *myLed )
     	{
     	    if(myLed->mode == TOGGLE)
     	    {
-    	        printf("Modo TOGGLE \n");
     	        uint8_t auxiliar = 0; 
     	        while(auxiliar < myLed->n_ciclos)
     	        {
     	            if(myLed->n_led==1)
     	            {
-    	                printf("LED_1\n");
     	                LedToggle(LED_1);
     	            }
     	            else 
     	            {
     	                if(myLed->n_led==2)
     	                {
-    	                    printf("LED_2\n");
     	                    LedToggle(LED_2);
     	                }
     	                else 
     	                {
     	                    if(myLed->n_led==3)
     	                    {
-    	                        printf("LED_3\n");
     	                        LedToggle(LED_3);
     	                    }
-    	            
     	                }
     	            }
     	            auxiliar++;
@@ -148,30 +128,27 @@ void funcionLed ( struct leds *myLed )
     	    }
     	}
 	}
-	
 }; 
 
 /*==================[external functions definition]==========================*/
-
-
-
 
 void app_main(void){
  	struct leds led = my_led; 
 	LedsInit();
 
-  
     led.n_led = 1;
-
     led.mode = TOGGLE;
-    led.n_ciclos = 20;
-    led.periodo = 500;
-
+    led.n_ciclos = 10;
+    led.periodo = 400;
     funcionLed(&led);
-    
+
+	led.n_led = 2;
+    funcionLed(&led);
+
+	led.n_led = 3;
+    funcionLed(&led);
+
 	printf("Fin del programa \n");
-
-
 }
 
 
