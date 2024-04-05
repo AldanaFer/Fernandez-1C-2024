@@ -24,7 +24,7 @@
 */
 var NAVTREE =
 [
-  [ "Proyecto_1", "index.html", [
+  [ "Proyecto_1_Ejericios_4-5-6", "index.html", [
     [ "Template", "md__c_1_2_repositorios_2_fernandez-1_c-2024_2firmware_2projects_2_guia1___ejercicio4_2_r_e_a_d_m_e.html", null ],
     [ "Topics", "topics.html", "topics" ],
     [ "Estructuras de datos", "annotated.html", [
