@@ -2,6 +2,14 @@
  * @author Aldana Agustina Fernandez (aldana.fernandez@ingenieria.uner.edu.ar)
  *
  * @brief Programa para mostrar en una pantalla LCD distintos valores. Manteniendo digitos y orden significativo.
+ * 
+ * @section changelog Changelog
+ *
+ * |   Date	    | Description                                    |
+ * |:----------:|:-----------------------------------------------|
+ * | 15/03/2023 | Document creation		                         |
+ * | 5/04/2023 | Document completion		                         |
+ *
  */
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
