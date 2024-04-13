@@ -26,6 +26,12 @@
         },
         {
             "path": "projects/Proyecto2_Activivdad1"
+        },
+        {
+            "path": "projects/Proyecto2_Activivdad2"
+        },
+        {
+            "path": "projects/3_blinking_timer"
         }
     ],
     "settings": {
