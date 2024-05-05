@@ -32,6 +32,12 @@
         },
         {
             "path": "projects/3_blinking_timer"
+        },
+        {
+            "path": "projects/Proyecto2_Activivdad3"
+        },
+        {
+            "path": "projects/Proyecto2_Actividad4"
         }
     ],
     "settings": {
@@ -89,7 +95,8 @@
             "i2c_mcu.h": "c",
             "cstdint": "c",
             "limits": "c",
-            "vector": "c"
+            "vector": "c",
+            "random": "c"
         },
     },
     "tasks": {
