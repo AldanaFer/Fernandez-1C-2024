@@ -1,43 +1,68 @@
 {
     "folders": [
         {
-            "path": "./drivers"
+            "name": "drivers",
+            "path": "drivers"
         },
         {
-            "path": "./projects/0_blinking"
+            "name": "middelware",
+            "path": "middelware"
         },
         {
-            "path": "./projects/1_blinking_switch"
+            "name": "0_blinking",
+            "path": "projects/0_blinking"
         },
         {
+            "name": "1_blinking_switch",
+            "path": "projects/1_blinking_switch"
+        },
+        {
+            "name": "2_blinking_tasks",
             "path": "projects/2_blinking_tasks"
         },
         {
-            "path": "./projects/x_template"
+            "name": "x_template",
+            "path": "projects/x_template"
         },
         {
+            "name": "1_blinking_switch_copia",
             "path": "projects/1_blinking_switch_copia"
         },
         {
+            "name": "Guia1_Ejercicio3",
             "path": "projects/Guia1_Ejercicio3"
         },
         {
+            "name": "Guia1_Ejercicio4",
             "path": "projects/Guia1_Ejercicio4"
         },
         {
+            "name": "Proyecto2_Activivdad1",
             "path": "projects/Proyecto2_Activivdad1"
         },
         {
+            "name": "Proyecto2_Activivdad2",
             "path": "projects/Proyecto2_Activivdad2"
         },
         {
+            "name": "3_blinking_timer",
             "path": "projects/3_blinking_timer"
         },
         {
+            "name": "Proyecto2_Activivdad3",
             "path": "projects/Proyecto2_Activivdad3"
         },
         {
+            "name": "Proyecto2_Actividad4",
             "path": "projects/Proyecto2_Actividad4"
+        },
+        {
+            "name": "Proyecto_Integrador",
+            "path": "projects/Proyecto_Integrador"
+        },
+        {
+            "name": "examples",
+            "path": "examples"
         }
     ],
     "settings": {
@@ -96,7 +121,13 @@
             "cstdint": "c",
             "limits": "c",
             "vector": "c",
-            "random": "c"
+            "random": "c",
+            "bitset": "c",
+            "format": "c",
+            "initializer_list": "c",
+            "span": "c",
+            "regex": "c",
+            "iir_filter.h": "c"
         },
     },
     "tasks": {
