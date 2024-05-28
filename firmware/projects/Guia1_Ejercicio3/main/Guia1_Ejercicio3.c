@@ -132,22 +132,19 @@ void funcionLed ( struct leds *myLed )
 
 /*==================[external functions definition]==========================*/
 
-void app_main(void){
+void app_main(void)
+{
  	struct leds led = my_led; 
 	LedsInit();
-
     led.n_led = 1;
     led.mode = TOGGLE;
     led.n_ciclos = 10;
     led.periodo = 400;
     funcionLed(&led);
-
 	led.n_led = 2;
     funcionLed(&led);
-
 	led.n_led = 3;
     funcionLed(&led);
-
 	printf("Fin del programa \n");
 }
 
