@@ -1,14 +1,6 @@
 {
     "folders": [
         {
-            "name": "drivers",
-            "path": "drivers"
-        },
-        {
-            "name": "middelware",
-            "path": "middelware"
-        },
-        {
             "name": "0_blinking",
             "path": "projects/0_blinking"
         },
@@ -57,12 +49,16 @@
             "path": "projects/Proyecto2_Actividad4"
         },
         {
-            "name": "Proyecto_Integrador",
-            "path": "projects/Proyecto_Integrador"
+            "path": "middelware"
         },
         {
-            "name": "examples",
             "path": "examples"
+        },
+        {
+            "path": "drivers"
+        },
+        {
+            "path": "projects/Proyecto_Integrador"
         }
     ],
     "settings": {
@@ -127,7 +123,8 @@
             "initializer_list": "c",
             "span": "c",
             "regex": "c",
-            "iir_filter.h": "c"
+            "iir_filter.h": "c",
+            "esp_dsp.h": "c"
         },
     },
     "tasks": {

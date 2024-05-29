@@ -30,22 +30,22 @@
 #include "uart_mcu.h"
 #include "timer_mcu.h"
 #include "analog_io_mcu.h"
-#include "../middelware/signal_processing/inc/iir_filter.h"
+#include "iir_filter.h"
 
 /*==================[macros and definitions]=================================*/
 #define CONFIG_PERIOD_ANALOGICO_US 	2000
 #define PERIODO_MEDIR 				1000    // lo que dura la contraccion dividido 16
-#define FrecuenciaPasaAlto 			0.1
-#define FrecuenciaPasaBajo 			5
-#define size_EMG 					16
+#define FRECUENCIA_PASA_ALTO 		0.1
+#define FRECIENCIA_PASA_BAJO		5
+#define SIZE_EMG 					16
 #define CHUNK               		16
 /*==================[internal data definition]===============================*/
-TaskHandle_t convertir_analog_task_handle = NULL; 
+TaskHandle_t Leer_Procesar_Analogico_task_handle = NULL; 
 TaskHandle_t contraccion_task_handle = NULL;
 uint16_t lectura = 0;
 uint16_t umbral_0 = 1;
-float EMG [size_EMG];
-float EMGfiltrado [size_EMG];
+float EMG [SIZE_EMG];
+float EMGfiltrado [SIZE_EMG];
 bool control; 
 /*==================[internal functions declaration]=========================*/
 
@@ -54,56 +54,48 @@ bool control;
  */
 void FuncTimerConvertirAnalogico(void* param)
 {
-    vTaskNotifyGiveFromISR(convertir_analog_task_handle, pdFALSE);    
+    vTaskNotifyGiveFromISR(Leer_Procesar_Analogico_task_handle, pdFALSE);    
 }
 
 // ********************A N T E S***********************
 /**
  * @brief Tarea encargada de leer el dato analogico y mandarlo como string 
  */
-/*
-static void taskAnalogica(void *pvParameter)
-{
-	while (true)
-	{
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); 
-		for(uint8_t i=0; i++; i<size_EMG)
-		{
-			AnalogInputReadSingle(CH1, &EMG[i]);
-		}
-		
-		UartSendString(UART_PC, (const char* )  UartItoa(dato, 10));
-		UartSendString(UART_PC, "\r"); 
-		
-	}
-};
-*/
+
+
 void procesarEMG()
 {
-	// for(uint8_t j = 0; j < size_EMG; j++)
-	// {
-		// HiPassFilter(&EMG[j], EMGfiltrado, CHUNK);
-		HiPassFilter(EMG, EMGfiltrado, CHUNK);
+	for(uint8_t j = 0; j < SIZE_EMG; j++)
+	{
+		//HiPassFilter(&EMG[j], EMGfiltrado, CHUNK);
+		//HiPassFilter(EMG, EMGfiltrado, CHUNK);
+		//LowPassFilter(EMGfiltrado, EMGfiltrado, CHUNK);
 
-		// j+=CHUNK;
-	// }
+		j+=CHUNK;
+	}
 }
+/*
+		HiPassFilter(&ecg[indice], ecg_filt, CHUNK);
+		LowPassFilter(ecg_filt, ecg_filt, CHUNK);
+
+*/
 
 void mostrarEMG()
 {
-	for(int j = 0; j<size_EMG; j++)
+	for(int j = 0; j<SIZE_EMG; j++)
 	{
-		UartSendString(UART_PC, (const char* )  UartItoa(lectura, 10));
+		UartSendString(UART_PC, (const char* )  UartItoa(EMGfiltrado[j], 10));
 		UartSendString(UART_PC, "\r"); 
 	}
 };
+
 
 
 /**
  * @brief Tarea encargada de leer el dato analogico y guardarlo en la variable general lectura 
  */
 
-static void taskAnalogica(void *pvParameter)
+static void task_Leer_Procesar_Analogico(void *pvParameter)
 {
 	uint8_t contador = 0; 
 	while (true)
@@ -111,14 +103,14 @@ static void taskAnalogica(void *pvParameter)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); 
 		
 		AnalogInputReadSingle(CH1, &lectura);
-		// EMG[contador] = lectura; 
+		EMG[contador] = (float)lectura; 
 
-		// if(contador == 15)
-		// {
-		// 	// procesarEMG();
-		// 	// mostrarEMG();
-		// 	contador = 0; 
-		// }
+		 if(contador == 15)
+		 {
+		 	//procesarEMG();
+			mostrarEMG();
+			contador = 0; 
+		}
 	}
 };
 
@@ -140,7 +132,7 @@ static void taskAnalogica(void *pvParameter)
 // 			for (uint8_t i = 0; i < size_EMG; i++)
 // 			{
 // 				AnalogInputReadSingle(CH1, &lectura);
-// 				EMG[i] = lectura; 
+// 				EMG[i] = float(lectura); 
 // 				vTaskDelay(PERIODO_MEDIR / portTICK_PERIOD_MS);   // lo que dura la contraccion sobre 16
 // 			}
 
@@ -178,8 +170,9 @@ void app_main(void)
 
 	TimerInit(&timerAnalogico);
 
-	// LowPassInit(FrecuenciaPasaBajo, 30, ORDER_2);
-    HiPassInit(FrecuenciaPasaAlto, 1.0, ORDER_2); 
+    HiPassInit(FRECUENCIA_PASA_ALTO, 1.0, ORDER_2); 
+	//LowPassInit(FRECIENCIA_PASA_BAJO, 30, ORDER_2);
+
 
 	serial_config_t miUart = {
 		.port =  UART_PC,	
@@ -191,10 +184,9 @@ void app_main(void)
 	UartInit(&miUart);
 	AnalogOutputInit();
 
-	xTaskCreate(&taskAnalogica, "Analogico", 4096, NULL, 5, &convertir_analog_task_handle);
+	xTaskCreate(&task_Leer_Procesar_Analogico, "Leer y Procesar Analogico", 4096, NULL, 5, &Leer_Procesar_Analogico_task_handle);
 	TimerStart(timerAnalogico.timer);
 
-	//xTaskCreate(&taskContraccion, "Contaccion", 4096, NULL, 5, &contraccion_task_handle);
 
 
 
