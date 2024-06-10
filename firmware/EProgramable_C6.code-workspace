@@ -49,16 +49,19 @@
             "path": "projects/Proyecto2_Actividad4"
         },
         {
-            "path": "middelware"
-        },
-        {
-            "path": "examples"
-        },
-        {
             "path": "drivers"
         },
         {
+            "path": "middelware"
+        },
+        {
             "path": "projects/Proyecto_Integrador"
+        },
+        {
+            "path": "projects/Parcial_Programable_Fernandez"
+        },
+        {
+            "path": "projects/PracticaParciales"
         }
     ],
     "settings": {
@@ -124,7 +127,9 @@
             "span": "c",
             "regex": "c",
             "iir_filter.h": "c",
-            "esp_dsp.h": "c"
+            "esp_dsp.h": "c",
+            "pwm_mcu.h": "c",
+            "servo_sg90.h": "c"
         },
     },
     "tasks": {

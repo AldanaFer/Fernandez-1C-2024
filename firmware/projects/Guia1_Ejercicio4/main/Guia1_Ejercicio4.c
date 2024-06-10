@@ -118,7 +118,9 @@ void app_main(void)
 			{GPIO_20, GPIO_OUTPUT},
 			{GPIO_21, GPIO_OUTPUT},
 			{GPIO_22, GPIO_OUTPUT},
-			{GPIO_23, GPIO_OUTPUT}};
+			{GPIO_23, GPIO_OUTPUT}
+		};
+
 	for (uint8_t i = 0; i < 4; i++)
 	{
 		GPIOInit(GPIO_20_23[i].pin, GPIO_20_23[i].dir);
@@ -130,7 +132,8 @@ void app_main(void)
 		{
 			{GPIO_9, GPIO_OUTPUT},
 			{GPIO_18, GPIO_OUTPUT},
-			{GPIO_19, GPIO_OUTPUT}};
+			{GPIO_19, GPIO_OUTPUT}
+		};
 	for (uint8_t i = 0; i < 3; i++)
 	{
 		GPIOInit(GPIO_9_18_19[i].pin, GPIO_9_18_19[i].dir);
