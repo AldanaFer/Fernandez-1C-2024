@@ -126,7 +126,8 @@
             "iir_filter.h": "c",
             "esp_dsp.h": "c",
             "pwm_mcu.h": "c",
-            "servo_sg90.h": "c"
+            "servo_sg90.h": "c",
+            "esp_system.h": "c"
         },
     },
     "tasks": {
