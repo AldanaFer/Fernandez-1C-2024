@@ -1,281 +1,235 @@
 /*! @mainpage Proyecto_Integrador
  *
- * @section genDesc General Description
+ * @author Aldana Agustina Fernandez (aldana.fernandez@ingenieria.uner.edu.ar)
  *
- * This section describes how the program works.
+ * @section Proyecto_Integrador
+ *
+ * @section Descripcion General
+ *
+ * Control de prótesis para mano mediante electromiografía.
  *
  *
  * @section hardConn Hardware Connection
  *
- * |    Peripheral  |   ESP32   	|
- * |:--------------:|:--------------|
- * | 	PIN_X	 	| 	GPIO_X		|
+ * |  	   	    Perifericos		    |   ESP32  	|
+ * |:------------------------------:|:----------|
+ * |Placa biopotenciales alimetacion|   5V		|
+ * |Placa biopotenciales EMG 		|   CH1		|
+ * |Placa biopotenciales GND		|   GND		|
+ * |SERVO alimentacion			 	|   3,3V	|
+ * |SERVO PWM	 					|   GPIO2	|
+ * |SERVO GND					 	|   GND		|
  *
  *
  * @section changelog Changelog
  *
- * |   Date	    | Description                                    |
- * |:----------:|:-----------------------------------------------|
- * | 12/09/2023 | Document creation		                         |
+ * |   Fecha	| Descripcion           |
+ * |:----------:|:----------------------|
+ * | 17/05/2024 | Document creation		|
+ * | 19/06/2024 | Document completion	|
  *
- * @author Albano Peñalva (albano.penalva@uner.edu.ar)
  *
  */
 
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "uart_mcu.h"
 #include "timer_mcu.h"
 #include "analog_io_mcu.h"
 #include "iir_filter.h"
-
 #include "neopixel_stripe.h"
 #include "ble_mcu.h"
 #include <string.h>
-
 #include "servo_sg90.h"
+#include "gpio_mcu.h"
 /*==================[macros and definitions]=================================*/
-#define CONFIG_PERIOD_ANALOGICO_US 	5000   // con 500 tengo frecuencia de 2kHz, con 1000us tengo 1kHz, para 1500Hz t=666
-#define CONFIG_BLINK_PERIOD 		500
-#define FRECUENCIA_PASA_ALTO 		20
-#define FRECIENCIA_PASA_BAJO		5
-#define SIZE_EMG 					256
-#define CHUNK               		4
-#define SIZE_EMG_COMPLETO			512
-
+#define CONFIG_PERIOD_SENIAL_US 5000
+#define SAMPLE_FREQ 200
+#define CONFIG_PERIOD_PROCESAR_US 2560000
+#define CONFIG_BLINK_PERIOD 500
+#define FRECUENCIA_PASA_ALTO 40
+#define FRECIENCIA_PASA_BAJO 1
+#define CHUNK 4
+#define SIZE_EMG_COMPLETO 512
 /*==================[internal data definition]===============================*/
-TaskHandle_t Leer_Procesar_Analogico_task_handle = NULL; 
-TaskHandle_t fft_task_handle = NULL;
-
-uint16_t umbral_0 = 1;
-static float emg [CHUNK];
-static float emg_filtrado [CHUNK] ;
-//static float emg_completo [SIZE_EMG_COMPLETO];
-
-// float emg_filtrado [SIZE_EMG];
-static float emg_completo [SIZE_EMG_COMPLETO];
-bool procesar = false;
-uint16_t contador_emg_completo = 0;
+TaskHandle_t senial_task_handle = NULL;
+TaskHandle_t mover_task_handle = NULL;
+volatile float emg_valor_absoluto[SIZE_EMG_COMPLETO]; 	// Arreglo que se usa para guardar 512 valores de emg filtrado y rectificado
 /*==================[internal functions declaration]=========================*/
 
-
 /**
- * @brief procesa el emg completo y muevo el servo
+ * @brief Función invocada en la interrupción del timer A, para realizar la lectura del EMG
  */
-// void procesar()
-// {
-//		
-// };
-
-
-/**
- * @brief Función invocada en la interrupción del timer A, para convertir a analogico
- */
-// void FuncTimerConvertirAnalogico(void* param)
-// {
-//     vTaskNotifyGiveFromISR(Leer_Procesar_Analogico_task_handle, pdFALSE);    
-// }
-
-/**
- * @brief Tarea encargada de leer el dato analogico y guardarlo en la variable general lectura 
- */
-
-
-// static void task_Leer_Procesar_Analogico(void *pvParameter)
-// {
-// 	uint8_t contador = 0; 
-// 	while (true)
-// 	{
-// 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-// 	}
-// };
-
-
-/**
- * @brief Función invocada en la interrupción del timer B
- */
-void FuncTimerSenial(void* param)
+void FuncTimerSenial(void *param)
 {
-    xTaskNotifyGive(fft_task_handle);
+	xTaskNotifyGive(senial_task_handle);
 }
 
-
-static void FftTask(void *pvParameter)
+/**
+ * @brief Función invocada en la interrupción del timer B, para mover el servo
+ */
+void FuncTimerMover(void *param)
 {
-	uint16_t lectura = 0;
-    char msg[128];
-    char msg_chunk[24];
-    uint16_t indice = 0;
-//	uint8_t contador = 0; 
-    while(true)
-	{
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-		// tengo que contar las 4 veces que lee y depues de las 4 activo el filtro
+	xTaskNotifyGive(mover_task_handle);
+}
 
+/**
+ * @brief Función invocada en la interrupción del timer A, para realizar la lectura del EMG, aplicar los filtros, rectificarla y mandar por bluetooth.
+ */
+static void TaskSenial(void *pvParameter)
+{
+	float emg[CHUNK] = {0};						  	  // Arreglo que se usa para guardar de a 4 lecturas de emg
+	float emg_filtrado[CHUNK] = {0};				  // Arreglo que se usa para guardar de a 4 valores de emg filtrado
+	uint16_t contador_emg_completo = 0;
+	uint16_t lectura = 0;
+	char msg[128];
+	char msg_chunk[24];
+	char msg_filtrado[128];
+	char msg_chunk_filtrado[24];
+	uint16_t indice = 0;
+	while (true)
+	{
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 		AnalogInputReadSingle(CH1, &lectura);
-		emg[indice] = (float) lectura; 
-		emg_completo[contador_emg_completo] = (float) lectura;
-		if(indice == CHUNK)
+		emg[indice] = (float)lectura;
+		indice++;
+		if (indice == CHUNK)
 		{
-            //HiPassFilter(&emg[0], emg_filtrado, CHUNK);
-			//LowPassFilter(emg_filtrado, emg_filtrado, CHUNK);
+			HiPassFilter(&emg[0], emg_filtrado, CHUNK);
+			LowPassFilter(emg_filtrado, emg_filtrado, CHUNK);
+			strcpy(msg, "");
+			strcpy(msg_filtrado, "");
 			for (uint8_t i = 0; i < CHUNK; i++)
 			{
-				//UartSendString(UART_PC, (const char* )  UartItoa( emg_filtrado[i], 10)); 
-				//UartSendString(UART_PC, (const char* )  UartItoa( lectura, 10)); 
-				//UartSendString(UART_PC, "\r");
+				emg_valor_absoluto[i + contador_emg_completo] = fabs(emg_filtrado[i]);
+				sprintf(msg_chunk, "*A%.2f*", emg[i]);
+				strcat(msg, msg_chunk);
+				sprintf(msg_chunk_filtrado, "*G%.2f*", emg_filtrado[i]);
+				strcat(msg_filtrado, msg_chunk_filtrado);
 			}
+			BleSendString(msg_filtrado);
+			BleSendString(msg);
 			indice = 0;
+			contador_emg_completo = contador_emg_completo + CHUNK;
 		}
-		indice ++;
-		// UartSendString(UART_PC, (const char* )  UartItoa( emg_filtrado[indice + contador], 10)); 
-		// UartSendString(UART_PC, "\r");
-		
-		//else
-		//{
-            //memcpy(emg_filtrado, &emg[indice], CHUNK*sizeof(float));
-        //}
-
-		// for(uint8_t i = 0; i < CHUNK; i++ )
-		// {
-		// 	emg_completo[contador_emg_completo] = emg_filtrado[i];
-		// 	contador_emg_completo++;
-		// }
-		// if(contador_emg_completo == SIZE_EMG_COMPLETO)
-		// {
-		// 	procesar();
-		// 	contador_emg_completo = 0; 
-		// }
-
-		//mandar por bl desde aca 
-
-        strcpy(msg, "");
-        for(uint8_t i=0; i<CHUNK; i++)
+		if (contador_emg_completo >= SIZE_EMG_COMPLETO)
 		{
-            sprintf(msg_chunk, "*G%.2f*", emg_filtrado[i]);
-            strcat(msg, msg_chunk);
-        }
-		BleSendString(msg);	
-
-		// hasta ahi
-
-		if (contador_emg_completo < 512)
-		{
-			procesar = true; 
 			contador_emg_completo = 0;
 		}
-		contador_emg_completo++;
-    }
+	}
 }
 
+/**
+ * @brief Tarea encargada de verificar que si se pasa el valor umbral se mueva el servo
+ */
+static void TaskMover(void *pvParameter)
+{
+	bool abrir = false;				// Indica si se abrio o cerro el servo
+	float maximo = 0;
+	uint8_t angulo = 90;
+	float umbral = 0.05;   
+	while (true)
+	{
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		maximo = 0;
+		for (int j = 0; j < SIZE_EMG_COMPLETO; j++)
+		{
+			if (maximo < emg_valor_absoluto[j])
+			{
+				maximo = emg_valor_absoluto[j];
+			}
+		}
+		if (maximo >= umbral)
+		{
+			if (abrir)
+			{
+				ServoMove(SERVO_0, angulo);
+				printf("abrir mano\n");
+				abrir = false;
+			}
+			else
+			{
+				ServoMove(SERVO_0, angulo*(-1) );
+				printf("cerrar mano\n");
+				abrir = true;
+			}
+		}
+	}
+}
 
 /*==================[external functions definition]==========================*/
 
 void app_main(void)
 {
-	analog_input_config_t analogico_i =	{	
-		.input = CH1, 	
-		.mode = ADC_SINGLE,	
-		.func_p = NULL, 	
-		.param_p = NULL 
-	};
+	ServoInit(SERVO_0, CH2);
+	analog_input_config_t analogico_i = {
+		.input = CH1,
+		.mode = ADC_SINGLE,
+		.func_p = NULL,
+		.param_p = NULL};
 	AnalogInputInit(&analogico_i);
 
-
-	// timer_config_t timerAnalogico = {    
-	// 	.timer = TIMER_A,    
-	// 	.period = CONFIG_PERIOD_ANALOGICO_US,    
-	// 	.func_p = FuncTimerConvertirAnalogico,    
-	// 	.param_p = NULL 
-	// };
-
-	// TimerInit(&timerAnalogico);
-
-	serial_config_t miUart = {
-		.port =  UART_PC,	
-		.baud_rate = 115200,		
-		.func_p = NULL,			
-		.param_p = NULL
-	}; 
-
-	UartInit(&miUart);
 	AnalogOutputInit();
 
-	// xTaskCreate(&task_Leer_Procesar_Analogico, "Leer y Procesar Analogico", 4096, NULL, 5, &Leer_Procesar_Analogico_task_handle);
-	// TimerStart(timerAnalogico.timer);
+	timer_config_t timer_senial = {
+		.timer = TIMER_A,
+		.period = CONFIG_PERIOD_SENIAL_US,
+		.func_p = FuncTimerSenial,
+		.param_p = NULL};
+	TimerInit(&timer_senial);
 
+	timer_config_t timer_mover = {
+		.timer = TIMER_B,
+		.period = CONFIG_PERIOD_PROCESAR_US,
+		.func_p = FuncTimerMover,
+		.param_p = NULL};
+	TimerInit(&timer_mover);
 
-    timer_config_t timer_senial = {
-        .timer = TIMER_B,
-        .period = CONFIG_PERIOD_ANALOGICO_US,
-        .func_p = FuncTimerSenial,
-        .param_p = NULL
-    };
- 	TimerInit(&timer_senial);
+	LowPassInit(SAMPLE_FREQ, FRECIENCIA_PASA_BAJO, ORDER_2);
+	HiPassInit(SAMPLE_FREQ, FRECUENCIA_PASA_ALTO, ORDER_2);
 
-   
+	xTaskCreate(&TaskSenial, "Senial", 4096, NULL, 5, &senial_task_handle);
+	TimerStart(timer_senial.timer);
 
-    LowPassInit(FRECIENCIA_PASA_BAJO, 45, ORDER_2);
-    HiPassInit(FRECUENCIA_PASA_ALTO, 1, ORDER_2);
-	//HiPassInit(FRECUENCIA_PASA_ALTO, 1, ORDER_2);
+	xTaskCreate(&TaskMover, "Mover", 4096, NULL, 5, &mover_task_handle);
+	TimerStart(timer_mover.timer);
 
- 
+	uint8_t blink = 0;
+	static neopixel_color_t color;
+	ble_config_t ble_configuration = {
+		"ESP_ALDU",
+		NULL};
 
-   xTaskCreate(&FftTask, "FFT", 4096, NULL, 5, &fft_task_handle);
-   TimerStart(timer_senial.timer);
-
-
-	int8_t ang=90;
-	ServoInit(SERVO_0,CH2);
-	//ServoMove(SERVO_0, ang);
-
+	NeoPixelInit(BUILT_IN_RGB_LED_PIN, BUILT_IN_RGB_LED_LENGTH, &color);
+	NeoPixelAllOff();
+	BleInit(&ble_configuration);
 	while (1)
 	{
-		ServoMove(SERVO_0, ang);
 		vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
+		switch (BleStatus())
+		{
+		case BLE_OFF:
+			NeoPixelAllOff();
+			break;
+		case BLE_DISCONNECTED:
+			if (blink % 2)
+			{
+				NeoPixelAllColor(NEOPIXEL_COLOR_TURQUOISE);
+			}
+			else
+			{
+				NeoPixelAllOff();
+			}
+			blink++;
+			break;
+		case BLE_CONNECTED:
+			NeoPixelAllColor(NEOPIXEL_COLOR_ROSE);
+			break;
+		}
 	}
-
-
-
-
-
-	// uint8_t blink = 0;
-   //  static neopixel_color_t color;
-    // ble_config_t ble_configuration = {
-    //     "ESP_EDU_ALDU",
-    //     NULL
-    // };
-
- 	// NeoPixelInit(BUILT_IN_RGB_LED_PIN, BUILT_IN_RGB_LED_LENGTH, &color);
-    // NeoPixelAllOff();
-  // BleInit(&ble_configuration);
-	// while(1)
-	// {
-    //     vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
-    //     switch(BleStatus())
-	// 	{
-    //         case BLE_OFF:
-    //             NeoPixelAllOff();
-    //         break;
-    //         case BLE_DISCONNECTED:
-    //             if(blink%2)
-	// 			{
-    //                 NeoPixelAllColor(NEOPIXEL_COLOR_TURQUOISE);
-    //             }
-	// 			else
-	// 			{
-    //                 NeoPixelAllOff();
-    //             }
-    //             blink++;
-    //         break;
-    //         case BLE_CONNECTED:
-    //             NeoPixelAllColor(NEOPIXEL_COLOR_ROSE);
-    //         break;
-    //     }
-    // }
-
 };
 /*==================[end of file]============================================*/
