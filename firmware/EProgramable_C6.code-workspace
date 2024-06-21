@@ -127,7 +127,11 @@
             "esp_dsp.h": "c",
             "pwm_mcu.h": "c",
             "servo_sg90.h": "c",
-            "esp_system.h": "c"
+            "esp_system.h": "c",
+            "mat.h": "c",
+            "cmath": "c",
+            "complex": "c",
+            "string.h": "c"
         },
     },
     "tasks": {
